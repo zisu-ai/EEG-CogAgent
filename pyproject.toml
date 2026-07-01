@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eeg-cogagent"
+version = "0.1.0"
+description = "LLM-assisted reproducible EEG biomarker workflow for dementia public datasets."
+requires-python = ">=3.10"
+dependencies = [
+  "jinja2>=3.1",
+  "matplotlib>=3.8",
+  "mne>=1.7",
+  "mne-bids>=0.15",
+  "networkx>=3.2",
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "pyyaml>=6.0",
+  "scikit-learn>=1.4",
+  "scipy>=1.10",
+  "seaborn>=0.13",
+  "statsmodels>=0.14",
+  "tabulate>=0.9",
+  "tqdm>=4.66",
+  "typer>=0.12"
+]
+
+[project.optional-dependencies]
+boosting = ["xgboost>=2.0"]
+download = ["openneuro-py>=2024.2"]
+submission = ["python-docx>=1.1", "Pillow>=10.0"]
+test = ["pytest>=8.0", "python-docx>=1.1", "Pillow>=10.0"]
+
+[project.scripts]
+eeg-cogagent = "eeg_cogagent.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["eeg_cogagent*"]
+

@@ -1,0 +1,43 @@
+# --- Data (large; never push) ---
+# OSF archive license is UNRESOLVED; ds004504 is CC0 but ~6.5 GB. Regenerate via scripts/download_ds004504.ps1 + OSF.
+data/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+
+# --- Generated results / intermediates (regeneratable from code) ---
+results/
+work/
+
+# --- Manuscripts / submission bundles (out of lean scope) ---
+docs/
+submission/
+
+# --- Literature (full-text copyright) ---
+literature/
+
+# --- Task handoffs and logs ---
+prompts/
+*.stream.log
+*.log
+
+# --- Tooling, caches, generated metadata ---
+.codex/
+.claude/
+.claude-runs/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+eeg_cogagent.egg-info/
+
+# --- Misc ---
+REFERENCE/
+
+# --- OS ---
+Thumbs.db
+.DS_Store
+desktop.ini

@@ -1,0 +1,60 @@
+project:
+  name: EEG-CogAgent
+  dataset_id: ds006036
+  task: photomark
+
+paths:
+  bids_root: data/ds006036_data
+  output_dir: results/ds006036_cross_condition
+
+participants:
+  file: participants.tsv
+  label_column: Group
+  label_map:
+    A: AD
+    F: FTD
+    C: HC
+
+preprocessing:
+  l_freq: 1.0
+  h_freq: 45.0
+  notch_freqs: [50.0]
+  reference: average
+  epoch_length: 4.0
+  max_minutes: 10
+  reject_uv: 150
+
+features:
+  bands:
+    delta: [1.0, 4.0]
+    theta: [4.0, 8.0]
+    alpha: [8.0, 13.0]
+    beta: [13.0, 30.0]
+    gamma: [30.0, 45.0]
+  ratios:
+    - [theta, alpha]
+    - [delta, alpha]
+  regions:
+    frontal: [Fp1, Fp2, F3, F4, F7, F8, Fz]
+    temporal: [T3, T4, T5, T6, T7, T8, P7, P8]
+    central: [C3, C4, Cz]
+    parietal: [P3, P4, Pz]
+    occipital: [O1, O2]
+
+statistics:
+  label_column: label
+  method: kruskal
+  fdr_alpha: 0.05
+  exclude_columns: [participant_id, label, Group, Gender, Age, MMSE, n_epochs]
+
+ml:
+  label_column: label
+  cv_folds: 5
+  random_state: 42
+  scoring: balanced_accuracy
+  models: [logistic_regression, svm_rbf, random_forest]
+  exclude_columns: [participant_id, label, Group, Gender, Age, MMSE, n_epochs]
+
+report:
+  title: "EEG-CogAgent ds006036 Cross-Condition Analysis"
+  top_features: 20

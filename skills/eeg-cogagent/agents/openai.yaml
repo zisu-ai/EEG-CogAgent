@@ -1,0 +1,4 @@
+interface:
+  display_name: "EEG-CogAgent"
+  short_description: "Orchestrate and audit reproducible BIDS EEG studies"
+  default_prompt: "Use $eeg-cogagent to audit this BIDS EEG analysis and continue the next reproducible workflow stage."
