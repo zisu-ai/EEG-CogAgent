@@ -263,6 +263,33 @@ class CanonicalFingerprintTests(unittest.TestCase):
         row_b = self._row("AD", "Paciente1", bytes_b)
         self.assertNotEqual(row_a["signal_sha256"], row_b["signal_sha256"])
 
+    def test_same_values_different_text_formatting_same_fingerprint(self):
+        # v3.1 repair: the digest is over parsed float64 values, so identical
+        # numbers expressed with different whitespace / decimal precision must
+        # collide (v1 hashed raw text bytes and would have diverged here).
+        # Values are multiples of 0.5 so that fixed-precision formatting round-trips
+        # to the exact same float64 (no rounding).
+        from eeg_cogagent.external_osf import _fingerprint_one_subject
+        vals = {ch: 0.5 * (i + 1) for i, ch in enumerate(COMMON_CHANNELS_19)}
+        plain = {ch: (f"{vals[ch]}\n" * 1024).encode("utf-8") for ch in COMMON_CHANNELS_19}
+        spaced = {ch: (f" {vals[ch]} \n" * 1024).encode("utf-8") for ch in COMMON_CHANNELS_19}
+        padded = {ch: (f"{vals[ch]:.6f}\n" * 1024).encode("utf-8") for ch in COMMON_CHANNELS_19}
+        self.assertEqual(_fingerprint_one_subject(plain), _fingerprint_one_subject(spaced))
+        self.assertEqual(_fingerprint_one_subject(plain), _fingerprint_one_subject(padded))
+
+    def test_wrong_sample_count_raises(self):
+        from eeg_cogagent.external_osf import _fingerprint_one_subject
+        short = {ch: (f"{0.1 * (i + 1)}\n" * 10).encode("utf-8") for i, ch in enumerate(COMMON_CHANNELS_19)}
+        with self.assertRaises(ValueError):
+            _fingerprint_one_subject(short)
+
+    def test_non_finite_values_raise(self):
+        from eeg_cogagent.external_osf import _fingerprint_one_subject
+        bad = {ch: (f"{0.1 * (i + 1)}\n" * 1024).encode("utf-8") for i, ch in enumerate(COMMON_CHANNELS_19)}
+        bad["Fp1"] = ("nan\n" * 1024).encode("utf-8")
+        with self.assertRaises(ValueError):
+            _fingerprint_one_subject(bad)
+
     def test_channel_order_does_not_affect_fingerprint(self):
         from eeg_cogagent.external_osf import (
             FINGERPRINT_VERSION,

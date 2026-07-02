@@ -738,20 +738,45 @@ def feature_mapping() -> dict[str, Any]:
 # cluster; that is enforced by the doc test and read-only code review.
 
 
-#: Schema-version tag written into the digest; bump on channel-set / dtype / byte-order changes.
-FINGERPRINT_VERSION: str = "osf-common19-float64-v1"
+#: Schema-version tag written into the digest; bump on channel-set / dtype /
+#: byte-order / sample-count-encoding changes.
+#:
+#: v1 (``osf-common19-float64-v1``) claimed to hash parsed little-endian
+#: float64 sample bytes but in fact hashed the raw ZIP text bytes and used the
+#: text byte length as the "sample count". v2 fixes this: each channel is parsed
+#: to float64 (strict, one float per line), hard-checked for exactly
+#: ``EXPECTED_SAMPLES_PER_CHANNEL`` finite samples, and written as explicit
+#: little-endian (``<f8``) contiguous bytes with the sample count as a fixed
+#: little-endian int64. The cluster structure is unchanged (identical signals
+#: still hash identically), but individual digest strings differ from v1, so the
+#: version tag is bumped as a future-break. See repair log.
+FINGERPRINT_VERSION: str = "osf-common19-float64-v2"
 
 
 def _fingerprint_one_subject(channel_bytes: dict[str, bytes], schema_version: str = FINGERPRINT_VERSION) -> str:
-    """SHA-256 over ``schema_version + ch_name + sample_count + float64-bytes``
-    for each ``COMMON_CHANNELS_19`` channel in strict fixed order."""
+    """SHA-256 over ``schema_version(UTF-8) + ch_name(UTF-8) + sample_count(int64 LE)
+    + float64(<f8) bytes`` for each ``COMMON_CHANNELS_19`` channel in strict fixed order.
+
+    The raw ZIP text bytes are first parsed to float64 (strict: one float per
+    line, blank lines skipped) and hard-checked for exactly
+    ``EXPECTED_SAMPLES_PER_CHANNEL`` finite samples. The sample count is written
+    as a fixed-width little-endian int64 and the values as explicit
+    little-endian ``<f8`` contiguous bytes, so the digest is independent of text
+    whitespace / decimal formatting and reproducible across machine endianness,
+    while any single-sample numeric change alters it. Channel iteration order is
+    always ``COMMON_CHANNELS_19`` regardless of the input dict's iteration order.
+    """
     digest = hashlib.sha256()
     digest.update(schema_version.encode("utf-8"))
     for channel in COMMON_CHANNELS_19:
-        data = channel_bytes[channel]
+        values, n_samples = _parse_channel_bytes(
+            channel_bytes[channel], expected=EXPECTED_SAMPLES_PER_CHANNEL
+        )
+        if not np.isfinite(values).all():
+            raise ValueError(f"non-finite values in fingerprint channel {channel}")
         digest.update(channel.encode("utf-8"))
-        digest.update(str(len(data)).encode("utf-8"))
-        digest.update(data)
+        digest.update(np.array(n_samples, dtype="<i8").tobytes())
+        digest.update(np.ascontiguousarray(values, dtype="<f8").tobytes())
     return digest.hexdigest().upper()
 
 
